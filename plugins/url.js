@@ -1,94 +1,79 @@
+// caseyrhodes tech inc 
 const axios = require("axios");
-const FormData = require('form-data');
+const FormData = require("form-data");
 const fs = require('fs');
 const os = require('os');
-const path = require("path");
+const path = require('path');
 const { cmd } = require("../command");
 
 cmd({
   pattern: "tourl",
-  alias: ["imgtourl", "imgurl", "url", "geturl", "upload"],
-  react: '🖇',
-  desc: "Convert media to Catbox URL",
+  alias: ["imgtourlbb", "imgbburl", "urlbb"],
+  react: '👻',
+  desc: "Convert an image to a URL using imgbb.",
   category: "utility",
-  use: ".tourl [reply to media]",
+  use: ".tourl",
   filename: __filename
-}, async (client, message, args, { reply }) => {
-  let tempFilePath;
+}, async (conn, mek, m, { from, quoted, reply, sender }) => {
   try {
-    // Get quoted message or self
-    const quotedMsg = message.quoted ? message.quoted : message;
-    const mimeType = (quotedMsg.msg || quotedMsg).mimetype || '';
+    const targetMessage = mek.quoted ? mek.quoted : mek;
+    const mimeType = (targetMessage.msg || targetMessage).mimetype || '';
 
-    if (!mimeType) {
-      throw "Please reply to an image, video, or audio file.";
+    console.log("Image mime type:", mimeType);
+
+    if (!mimeType || !mimeType.startsWith("image")) {
+      throw "🌻 Please reply to an image.";
     }
 
-    // Download media and save temp file
-    const mediaBuffer = await quotedMsg.download();
-    tempFilePath = path.join(os.tmpdir(), `catbox_upload_${Date.now()}`);
-    fs.writeFileSync(tempFilePath, mediaBuffer);
+    // Download the image
+    const imageBuffer = await targetMessage.download();
+    const tempFilePath = path.join(os.tmpdir(), "temp_image");
+    fs.writeFileSync(tempFilePath, imageBuffer);
 
-    // Determine file extension
-    let extension = '';
-    if (mimeType.includes('image/jpeg')) extension = '.jpg';
-    else if (mimeType.includes('image/png')) extension = '.png';
-    else if (mimeType.includes('image/webp')) extension = '.webp';
-    else if (mimeType.includes('image/gif')) extension = '.gif';
-    else if (mimeType.includes('video')) extension = '.mp4';
-    else if (mimeType.includes('audio')) extension = '.mp3';
-    if (!extension) extension = path.extname(tempFilePath) || '.bin';
+    console.log("Temporary file saved at:", tempFilePath);
+    console.log("Image size:", imageBuffer.length, "bytes");
 
-    const fileName = `file${extension}`;
-
-    // Prepare form for Catbox upload
+    // Prepare form data for upload
     const form = new FormData();
-    form.append('fileToUpload', fs.createReadStream(tempFilePath), fileName);
-    form.append('reqtype', 'fileupload');
+    form.append("image", fs.createReadStream(tempFilePath));
 
-    // Upload to Catbox
-    const response = await axios.post("https://catbox.moe/user/api.php", form, {
-      headers: form.getHeaders()
-    });
-
-    if (!response.data || !response.data.includes("https://")) {
-      throw "Upload failed. Catbox returned an unexpected response.";
-    }
-
-    const mediaUrl = response.data;
-
-    // Identify media type
-    let mediaType = 'File';
-    if (mimeType.includes('image')) mediaType = 'Image';
-    else if (mimeType.includes('video')) mediaType = 'Video';
-    else if (mimeType.includes('audio')) mediaType = 'Audio';
-
-    // Reply in hacker style
-    await reply(
-      "```[ FILE UPLOAD SUCCESS ]```\n" +
-      "```========================```" + "\n" +
-      `📁 TYPE   : ${mediaType}\n` +
-      `📦 SIZE   : ${formatBytes(mediaBuffer.length)}\n` +
-      `🌐 LINK   :\n${mediaUrl}\n` +
-      "```========================```\n" +
-      `> Uploaded by : CASEYRHODES TECH 👻`
+    // Upload the image to imgbb
+    const response = await axios.post(
+      "https://api.imgbb.com/1/upload?key=b9dc9d120cc17e0d9bef7071126818e9",
+      form,
+      { headers: form.getHeaders() }
     );
 
-  } catch (error) {
-    console.error(error);
-    await reply(`❌ Error: ${error.message || error}`);
-  } finally {
-    if (tempFilePath && fs.existsSync(tempFilePath)) {
-      fs.unlinkSync(tempFilePath);
+    console.log("API Response:", response.data);
+
+    if (!response.data || !response.data.data || !response.data.data.url) {
+      throw "❌ Failed to upload the file.";
     }
+
+    const imageUrl = response.data.data.url;
+
+    // Delete the temporary image file
+    fs.unlinkSync(tempFilePath);
+
+    const contextInfo = {
+      mentionedJid: [sender],
+      forwardingScore: 999,
+      isForwarded: true,
+      forwardedNewsletterMessageInfo: {
+        newsletterJid: '120363302677217436@newsletter',
+        newsletterName: "CASEYRHODES-XMD🥰",
+        serverMessageId: 143
+      }
+    };
+
+    // Send the URL back to the user
+    await conn.sendMessage(from, {
+      text: `*✅ Image Uploaded Successfully 📸*\nSize: ${imageBuffer.length} bytes\n*URL:* ${imageUrl}\n\n> ⚖️ Uploaded via CASEYRHODES-XMD`,
+      contextInfo
+    });
+
+  } catch (error) {
+    reply("Error: " + error);
+    console.error("Error occurred:", error);https://api.imgbb.com/1/upload?key=b9dc9d120cc17e0d9bef7071126818e9
   }
 });
-
-// Helper to format byte sizes
-function formatBytes(bytes) {
-  if (bytes === 0) return '0 Bytes';
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-}

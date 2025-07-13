@@ -1,7 +1,7 @@
 const { cmd } = require('../command');
 
 cmd({
-    pattern: "jid1",
+    pattern: "jid",
     desc: "Get the JID of the user or group.",
     react: "📍",
     category: "group",

@@ -2,7 +2,7 @@ const fetch = require("node-fetch");
 const { cmd } = require("../command");
 
 cmd({
-  pattern: "tiktoksearch",
+  pattern: "tiktok",
   alias: ["tiktoks", "tiks"],
   desc: "Search for TikTok videos using a query.",
   react: '✅',
