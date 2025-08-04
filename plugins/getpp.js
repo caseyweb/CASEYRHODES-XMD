@@ -6,7 +6,7 @@ cmd({
   use: "pp",
   desc: "Get profile picture of a user (replied user in group, or DM user)",
   category: "tools",
-  react: "🖼️",
+  react: "🥵",
   filename: __filename
 },
 async (conn, mek, m, { from, sender, reply, isGroup }) => {
